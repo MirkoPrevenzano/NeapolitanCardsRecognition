@@ -1,0 +1,17 @@
+Usiamo 3 mazzi
+Mazzo A: nuovo con 0 difetti
+Mazzo B: vecchio con segni di usura
+Mazzo C: molto consumato
+
+Scatto foto singole in modo casuale stessa posizione.
+Modalità scatto 4:3
+
+
+Augmentation applicata: 
+flip verticale
+rotazione +-90 e +-15
+scala grigi
+saturazione aumentata
+luminosità aumentata
+noise
+sfocatura

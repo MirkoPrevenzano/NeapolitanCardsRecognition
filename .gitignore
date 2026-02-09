@@ -1,0 +1,37 @@
+# === Dataset e immagini (troppo pesanti per GitHub) ===
+# Decommentare le righe sotto se NON vuoi caricare i dataset su GitHub.
+# In quel caso, documentare nel README come ottenere i dati.
+
+# augmentationDataset/
+# dataset_original/
+# mazzoDalNegro/
+# mazzoDavide/
+# mazzoFabrizio/
+# mazzoGaia/
+# mazzoMirko/
+
+# === File generati da LaTeX ===
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.toc
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+env/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === IDE ===
+.vscode/
+.idea/
