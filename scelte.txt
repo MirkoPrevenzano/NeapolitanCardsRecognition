@@ -1,7 +1,10 @@
-Usiamo 3 mazzi
+Usiamo 3 mazzi per il train
 Mazzo A: nuovo con 0 difetti
 Mazzo B: vecchio con segni di usura
 Mazzo C: molto consumato
+
+Usiamo 1 mazzo per il valid
+Usiamo 1 mazzo per il test
 
 Scatto foto singole in modo casuale stessa posizione.
 Modalità scatto 4:3
@@ -15,3 +18,10 @@ saturazione aumentata
 luminosità aumentata
 noise
 sfocatura
+
+Facciamo Augmentation sul valid in particolarel e seguenti operazioni:
+rotation +-90 +-15
+flip vertical
+
+L'approccio utilizzato è quello di effettuare lo split tra i diversi 3 set assegnando interi mazzi dedicati ad un solo set così da garantire 
+una totale presenza ed equilibrio di esempi in ogni set.
