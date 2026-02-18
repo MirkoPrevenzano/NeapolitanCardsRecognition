@@ -53,14 +53,19 @@ for path in tqdm(image_paths, desc="Elaborazione immagini"):
     img = img.astype('float32') / 255.0
 
     # Trasforma l'immagine da matrice 3D (altezza x larghezza x 3) a tabella 2D (N_pixel x 3)
+    # permette di trattare i pixel come righe di una tabella rendendo più semplici le somme 
+    # utile perchè numpy opera su vettori. Un'immagine 100*100 diventa 10.000*3
     pixels = img.reshape(-1, 3)
 
     # Accumula la somma di tutti i pixel per canale
+    # permette di sommare i valori della stessa colonna, colonna 0 per R colonna 1 per G
+    # senza questo sommerebbe tutti i valori senza far distizione tra i 3 canali.
     channel_sum += pixels.sum(axis=0)
     # Accumula la somma dei quadrati (serve per calcolare la varianza)
     channel_sum_sq += (pixels ** 2).sum(axis=0)
     
-    # Aggiorna il numero totale di pixel elaborati
+    # Aggiorna il numero totale di pixel elaborati tramite shape che conta il numeri di 
+    # righe della matrice 2d pixels (ogni riga è un pixel)
     pixel_count += pixels.shape[0]
 
 # --- RISULTATI FINALI ---
@@ -80,3 +85,4 @@ print("\n--- Risultati (ordine RGB) ---")
 print(f"Media (Mean): {mean}")
 print(f"Varianza (Var): {variance}")
 print(f"Deviazione Standard (Std): {std}")
+

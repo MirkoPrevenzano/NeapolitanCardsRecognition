@@ -115,6 +115,7 @@ def initialize_model(num_classes):
 
 # Crea il modello e spostalo sulla GPU (o CPU)
 model = initialize_model(NUM_CLASSES)
+# Sposta il modello sul dispositivo scelto (GPU o CPU)
 model = model.to(device)
 
 # CrossEntropyLoss: funzione di errore per classificazione multi-classe
@@ -167,7 +168,7 @@ def train_model(model, criterion, optimizer, num_epochs=10):
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)          # Forward: passa le immagini nella rete
                     _, preds = torch.max(outputs, 1) # Prendi la classe con probabilità più alta
-                    loss = criterion(outputs, labels) # Calcola l'errore
+                    loss = criterion(outputs, labels) # Calcola l'errore. criterion confronta le predizioni (outputs) con le etichette vere (labels)
 
                     # Backward: calcola come aggiornare i pesi + aggiorna (solo in training)
                     if phase == 'train':

@@ -26,8 +26,8 @@ def rename_images(base_dir, output_csv):
         # Expect folder names like "1 A" or "10 D"
         parts = class_dir.name.split()
         if len(parts) >= 2:
-            valore = parts[0]
-            seme = parts[1]
+            valore = parts[1]
+            seme = parts[0]
         else:
             # fallback: use full folder name
             valore = parts[0]
