@@ -1,0 +1,36 @@
+# ==========================================
+# FILE DI CONFIGURAZIONE - model.py
+# Formato: CHIAVE = VALORE  (commenti con #)
+# ==========================================
+
+# --- Percorso dati ---
+DATA_DIR = /kaggle/input/datasets/mirkoprevenzano/versione3/datasetVersione3
+
+# --- Architettura (resnet18 | resnet50) ---
+MODEL = resnet18
+
+# --- Iperparametri ---
+BATCH_SIZE = 32
+EPOCHS = 30
+LEARNING_RATE = 1e-4
+
+# --- Classi ---
+NUM_CLASSES_NUMBER = 10
+NUM_CLASSES_LETTER = 4
+
+# --- Normalizzazione ---
+MEAN = 0.6055278, 0.57453782, 0.51603037
+STD = 0.25722615, 0.27000131, 0.28853789
+
+# --- Early Stopping (true | false) ---
+EARLY_STOPPING = true
+EARLY_STOPPING_PATIENCE = 6
+EARLY_STOPPING_MIN_DELTA = 1e-4
+
+# --- Scheduler Dinamico (true | false) ---
+SCHEDULER = true
+SCHEDULER_FACTOR = 0.1
+SCHEDULER_PATIENCE = 2
+
+# --- Unfreeze Layer4 (true | false) ---
+UNFREEZE_LAYER4 = true

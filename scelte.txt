@@ -19,7 +19,7 @@ luminosità aumentata
 noise
 sfocatura
 
-Facciamo Augmentation sul valid in particolarel e seguenti operazioni:
+Facciamo Augmentation sul valid in particolarel e seguenti operazioni:Tentativo
 rotation +-90 +-15
 flip vertical
 
