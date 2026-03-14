@@ -37,6 +37,11 @@ Thumbs.db
 .idea/
 
 
+# === Output XAI / Captum (file generati, troppo grandi per GitHub) ===
+captum_results_*.zip
+captum_results_*/
+
+
 appuntiMiei.txt
 
 possibiliModifiche.txt

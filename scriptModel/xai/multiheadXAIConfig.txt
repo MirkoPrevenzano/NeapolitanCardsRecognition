@@ -1,0 +1,38 @@
+# Config MultiHead XAI (Captum) - key = value
+# NOTE: puoi lasciare i default. Le righe che iniziano con # sono commenti.
+
+# Riproducibilità
+SEED = 42
+
+# Path (tipicamente Kaggle)
+DATA_DIR = /kaggle/input/datasets/davidedipierro24/versione3/datasetVersione3
+MODEL_PATH = /kaggle/input/models/davidedipierro24/14-classi/pytorch/default/1/best_model.pth
+OUTPUT_DIR = /kaggle/working/captum_results_multihead_opt
+ZIP_PATH = /kaggle/working/captum_results_multihead_opt.zip
+
+# Classi / modello
+NUM_CLASSES_NUMBER = 10
+NUM_CLASSES_LETTER = 4
+DROPOUT_P = 0.3
+
+# Normalizzazione (calcolata nel progetto)
+MEAN = 0.6055278, 0.57453782, 0.51603037
+STD = 0.25722615, 0.27000131, 0.28853789
+
+# Captum - Integrated Gradients + NoiseTunnel
+NT_TYPE = smoothgrad_sq
+NT_SAMPLES = 5
+INTERNAL_BATCH_SIZE_NUM = 5
+INTERNAL_BATCH_SIZE_CHAR = 1
+
+# Captum - Occlusion
+OCC_SLIDING_WINDOW = 3, 40, 40
+OCC_STRIDES = 3, 10, 10
+BASELINE_OCCLUSION = 0, 0, 0
+
+# Plot
+FIGSIZE = 16, 10
+DPI = 150
+ALPHA_OVERLAY_IG = 0.8
+ALPHA_OVERLAY_OCC = 0.7
+OUTLIER_PERC = 2

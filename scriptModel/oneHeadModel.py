@@ -1,4 +1,5 @@
-#Addestramento su 40 classi con modifica dei parametri NO WEIGHT DECAY
+# Addestramento su 40 classi (one-head)
+# Note personali: qui non uso weight decay (vedi configurazione ottimizzatore).
 
 import os
 import torch
@@ -83,6 +84,8 @@ print(f"Early Stopping: {USE_EARLY_STOPPING} | Scheduler: {USE_SCHEDULER} | Unfr
 # 2. DATASET E DATALOADERS
 # ==========================================
 
+# Converto i dati in tensori per una migliore gestione durante il training con la GPU.
+# Applico standardizzazione usando la media e deviazione standard calcolate in precedenza (da calcoloMediaVarianza.py).
 data_transforms = {
     'train': transforms.Compose([
         transforms.ToTensor(),
@@ -103,11 +106,15 @@ VALID_DIR = os.path.join(DATA_DIR, 'valid')
 TEST_DIR = os.path.join(DATA_DIR, 'test')
 
 image_datasets = {
+    # Carico dataset usando ImageFolder per sfruttare la struttura delle cartelle (una cartella = una classe)
     'train': datasets.ImageFolder(TRAIN_DIR, data_transforms['train']),
     'valid': datasets.ImageFolder(VALID_DIR, data_transforms['valid']),
     'test': datasets.ImageFolder(TEST_DIR, data_transforms['test'])
 }
 
+# Dataloader con shuffle solo per il training così da non associare l'ordine dei dati a pattern di apprendimento indesiderati,
+# e num_workers=2 per un caricamento più efficiente.
+# Applico approccio mini batch.
 dataloaders = {
     'train': DataLoader(image_datasets['train'], batch_size=BATCH_SIZE, shuffle=True, num_workers=2),
     'valid': DataLoader(image_datasets['valid'], batch_size=BATCH_SIZE, shuffle=False, num_workers=2),
@@ -126,13 +133,14 @@ print(f"Dimensione Train: {dataset_sizes['train']}, Valid: {dataset_sizes['valid
 # ==========================================
 
 def initialize_model(num_classes, model_name='resnet18', unfreeze_layer4=True):
+    # Configurazione dinamica del backbone (ResNet18 o ResNet50) con pesi pre-addestrati su ImageNet
     # [CONFIGURABILE] scelta architettura da config
     if model_name == 'resnet50':
         model = models.resnet50(weights="IMAGENET1K_V1")
     else:
         model = models.resnet18(weights="IMAGENET1K_V1")
 
-    # [AGGIUNTA] Freeze iniziale di tutti i layer
+    # Freeze iniziale di tutti i layer del backbone
     for param in model.parameters():
         param.requires_grad = False
 
@@ -141,7 +149,8 @@ def initialize_model(num_classes, model_name='resnet18', unfreeze_layer4=True):
         for param in model.layer4.parameters():
             param.requires_grad = True
 
-    # FC va sempre allenato
+    # Sostituisco la testa originale (fully connected) con una nuova FC per NUM_CLASSES.
+    # La FC va sempre allenata.
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, num_classes)
     for param in model.fc.parameters():
@@ -153,7 +162,8 @@ model = initialize_model(NUM_CLASSES, model_name=MODEL_NAME, unfreeze_layer4=UNF
 
 criterion = nn.CrossEntropyLoss()
 
-# [AGGIUNTA] Ottimizzatore su layer allenabili + weight decay
+# Configuro la loss function e l'ottimizzatore (Adam) considerando solo i parametri trainabili
+# (FC + layer4 se unfreeze). In questo script non imposto weight decay.
 trainable_params = filter(lambda p: p.requires_grad, model.parameters())
 optimizer = optim.Adam(trainable_params, lr=LEARNING_RATE)
 
@@ -208,15 +218,17 @@ def train_model(
             for inputs, labels in dataloaders[phase]:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-
+                # Azzeramento dei gradienti prima del backward pass
                 optimizer.zero_grad()
 
+                # Se siamo in fase di training abilitiamo i gradienti, altrimenti no
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)
                     _, preds = torch.max(outputs, 1)
                     loss = criterion(outputs, labels)
 
                     if phase == 'train':
+                        # Solo durante il training eseguiamo il backward pass e l'aggiornamento dei pesi
                         loss.backward()
                         optimizer.step()
 

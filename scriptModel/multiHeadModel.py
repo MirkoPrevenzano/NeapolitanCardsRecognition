@@ -88,15 +88,17 @@ print(f"Early Stopping: {USE_EARLY_STOPPING} | Scheduler: {USE_SCHEDULER} | Unfr
 
 class MultiHeadDataset(Dataset):
     def __init__(self, root_dir, transform=None):
+        # Carica dataset usando ImageFolder per sfruttare la struttura delle cartelle
         self.dataset = datasets.ImageFolder(root_dir, transform=transform)
         self.classes = self.dataset.classes
         self.letter_map = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
         self.img_labels = []
+        # Estrazione delle etichette numeriche e letterali dalle cartelle
         for _, class_idx in self.dataset.samples:
             class_name = self.classes[class_idx]
 
-            # [AGGIUNTA] parsing più robusto: "10 A", "10_A", "10-A", "10A"
+            # Regex per estrarre numero e lettera, gestendo possibili separatori (es. "10A", "10_A", "10-A")
             match = re.search(r"(\d+)\s*[_\-\s]*([A-Z])", class_name)
 
             if match:
@@ -117,9 +119,9 @@ class MultiHeadDataset(Dataset):
         label_num, label_char = self.img_labels[idx]
         return img, label_num, label_char
 
-# ... (Il resto della creazione dataloaders rimane identico) ...
 
-# Definisci le trasformazioni (Invariate)
+# Converto i dati in tensori per una migliore gestione durante il training con la GPU.
+# Applico standardizzazione usando la media e deviazione standard calcolate in precedenza (da calcoloMediaVarianza.py).
 data_transforms = {
     'train': transforms.Compose([
         transforms.ToTensor(),
@@ -135,17 +137,20 @@ data_transforms = {
     ]),
 }
 
-# Creazione dei Dataset
+
 TRAIN_DIR = os.path.join(DATA_DIR, 'train')
 VALID_DIR = os.path.join(DATA_DIR, 'valid') 
 TEST_DIR = os.path.join(DATA_DIR, 'test')
 
+# Creo i dataset e dataloader per ogni split
 image_datasets = {
     'train': MultiHeadDataset(TRAIN_DIR, data_transforms['train']),
     'valid': MultiHeadDataset(VALID_DIR, data_transforms['valid']),
     'test': MultiHeadDataset(TEST_DIR, data_transforms['test'])
 }
 
+# Dataloader con shuffle solo per il training così da non associare l'ordine dei dati a pattern di apprendimento indesiderati, e num_workers=2 per un caricamento più efficiente.
+# Applico approccio mini batch
 dataloaders = {
     'train': DataLoader(image_datasets['train'], batch_size=BATCH_SIZE, shuffle=True, num_workers=2),
     'valid': DataLoader(image_datasets['valid'], batch_size=BATCH_SIZE, shuffle=False, num_workers=2),  # [AGGIUNTA]
@@ -164,16 +169,17 @@ class MultiHeadResNet(nn.Module):
     def __init__(self, num_classes_num, num_classes_char, model_name='resnet18', unfreeze_layer4=True):
         super(MultiHeadResNet, self).__init__()
 
-        # [CONFIGURABILE] scelta architettura da config
+        # Configurazione dinamica del backbone (ResNet18 o ResNet50) con pesi pre-addestrati su ImageNet
         if model_name == 'resnet50':
             self.base_model = models.resnet50(weights="IMAGENET1K_V1")
         else:
             self.base_model = models.resnet18(weights="IMAGENET1K_V1")
 
+        # Rimuovo la testa originale (fully connected) per sostituirla con due teste separate per numeri e lettere
         num_ftrs = self.base_model.fc.in_features
         self.base_model.fc = nn.Identity()
 
-        # [AGGIUNTA 40-class config] freeze completo backbone
+        # Freeze tutti i parametri del backbone
         for p in self.base_model.parameters():
             p.requires_grad = False
 
@@ -185,12 +191,13 @@ class MultiHeadResNet(nn.Module):
         self.head_num = nn.Linear(num_ftrs, num_classes_num)
         self.head_char = nn.Linear(num_ftrs, num_classes_char)
 
-        # [AGGIUNTA] heads trainabili
+        # Assicuro che le teste siano sempre trainabilI
         for p in self.head_num.parameters():
             p.requires_grad = True
         for p in self.head_char.parameters():
             p.requires_grad = True
 
+    
     def forward(self, x):
         x = self.base_model(x)
         out_num = self.head_num(x)
@@ -202,13 +209,12 @@ model = MultiHeadResNet(
     model_name=MODEL_NAME, unfreeze_layer4=UNFREEZE_LAYER4
 ).to(device)
 
+# Configuro la loss function e l'ottimizzatore (Adam) considerando solo i parametri trainabili (teste + layer4 se unfreeze)
 criterion = nn.CrossEntropyLoss()
-
-# [AGGIUNTA 40-class config] optimizer solo su parametri trainabili + weight decay
 trainable_params = filter(lambda p: p.requires_grad, model.parameters())
 optimizer = optim.Adam(trainable_params, lr=LEARNING_RATE)
 
-# [CONFIGURABILE] scheduler dinamico
+# Applico scheduler se configurato, monitorando la val_loss per adattare dinamicamente il learning rate durante il training
 if USE_SCHEDULER:
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode='min', factor=SCHEDULER_FACTOR, patience=SCHEDULER_PATIENCE
@@ -245,28 +251,31 @@ def train_model(
         'train_acc_char': [], 'valid_acc_char': [],
         'lr': []
     }
-
+    # Inizio iterazione sulle epoche
     for epoch in range(num_epochs):
         print(f'Epoch {epoch+1}/{num_epochs}')
         print('-' * 10)
 
+        # Iterazione sulle fasi: train e validation
         for phase in ['train', 'valid']:
             model.train() if phase == 'train' else model.eval()
 
             running_loss = 0.0
             running_corrects_num = 0
             running_corrects_char = 0
-
+            # Iterazione sui batch di dati
             for inputs, labels_num, labels_char in dataloaders[phase]:
                 inputs = inputs.to(device)
                 labels_num = labels_num.to(device)
                 labels_char = labels_char.to(device)
-
+                # Azzeramento dei gradienti prima del backward pass
                 optimizer.zero_grad()
 
+                # se siamo in fase di training, abilitiamo il calcolo dei gradienti, altrimenti no.
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs_num, outputs_char = model(inputs)
 
+                    # Calcolo delle predizioni e delle perdite per entrambe le teste
                     _, preds_num = torch.max(outputs_num, 1)
                     _, preds_char = torch.max(outputs_char, 1)
 
@@ -275,9 +284,11 @@ def train_model(
                     loss = loss_num + loss_char
 
                     if phase == 'train':
+                        # Solo durante il training eseguiamo il backward pass e l'aggiornamento dei pesi
                         loss.backward()
                         optimizer.step()
 
+                # Aggiornamento delle metriche di perdita e accuratezza per entrambe le teste
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects_num += torch.sum(preds_num == labels_num.data)
                 running_corrects_char += torch.sum(preds_char == labels_char.data)
@@ -289,6 +300,7 @@ def train_model(
 
             print(f'{phase} Loss: {epoch_loss:.4f} | Acc Num: {epoch_acc_num:.4f} | Acc Char: {epoch_acc_char:.4f}')
 
+            # Salvataggio delle metriche per visualizzazione successiva
             if phase == 'train':
                 history['train_loss'].append(epoch_loss)
                 history['train_acc_num'].append(epoch_acc_num.item())
@@ -298,7 +310,7 @@ def train_model(
                 history['valid_acc_num'].append(epoch_acc_num.item())
                 history['valid_acc_char'].append(epoch_acc_char.item())
 
-                # [CONFIGURABILE] scheduler su val loss
+                # Aggiornamento dello scheduler se configurato, monitorando la val_loss per adattare dinamicamente il learning rate durante il training
                 if use_scheduler and scheduler is not None:
                     scheduler.step(epoch_loss)
                 current_lr = optimizer.param_groups[0]['lr']
@@ -310,7 +322,7 @@ def train_model(
                     best_acc_avg = epoch_acc_avg
                     best_model_wts = copy.deepcopy(model.state_dict())
 
-                # [CONFIGURABILE] early stopping su val loss
+                # early stopping basato su val_loss
                 if use_early_stopping:
                     if epoch_loss < (best_val_loss - min_delta):
                         best_val_loss = epoch_loss
