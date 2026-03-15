@@ -41,9 +41,11 @@ Thumbs.db
 captum_results_*.zip
 captum_results_*/
 
+# === PDF locali (non versionare) ===
 s10462-025-11326-3-2.pdf
 data_leakage_dataset.pdf
 
+# === Appunti locali (non versionare) ===
 appuntiMiei.txt
-
+scelte.txt
 possibiliModifiche.txt
